@@ -1,0 +1,18 @@
+{
+  "name": "EduCode AI",
+  "short_name": "EduCode",
+  "description": "Aprenda programação de forma interativa com Inteligência Artificial.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

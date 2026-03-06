@@ -69,20 +69,34 @@ export default function App() {
     // Initialize chat with a welcome message
     const startChat = async () => {
       setIsLoading(true);
-      await initChat();
-      const initialMsg = await sendMessage(`Olá! Sou um novo aluno. Gostaria de começar o módulo: ${activeModule.title}. Pode me dar as boas-vindas e a primeira lição seguindo o método de ensino?`);
-      const aiMessage: Message = {
-        id: Date.now().toString(),
-        role: 'ai',
-        content: initialMsg,
-        timestamp: new Date(),
-      };
-      setMessages([aiMessage]);
-      
-      // Sincroniza a primeira mensagem com o AJUDAÍ+
-      ajudaiService.saveChatMessage(userId, activeModule.id, aiMessage);
-      
-      setIsLoading(false);
+      try {
+        await initChat();
+        const initialMsg = await sendMessage(`Olá! Sou um novo aluno. Gostaria de começar o módulo: ${activeModule.title}. Pode me dar as boas-vindas e a primeira lição seguindo o método de ensino?`);
+        const aiMessage: Message = {
+          id: Date.now().toString(),
+          role: 'ai',
+          content: initialMsg,
+          timestamp: new Date(),
+        };
+        setMessages([aiMessage]);
+        
+        // Sincroniza a primeira mensagem com o AJUDAÍ+
+        ajudaiService.saveChatMessage(userId, activeModule.id, aiMessage);
+      } catch (error: any) {
+        console.error("Error initializing chat:", error);
+        let errorMessage = "Desculpe, não consegui iniciar o módulo. Tente novamente mais tarde.";
+        if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
+          errorMessage = "⚠️ **Limite de uso atingido.**\n\nO limite de requisições da inteligência artificial foi excedido. Por favor, aguarde um momento e tente novamente ou verifique as configurações da sua chave de API.";
+        }
+        setMessages([{
+          id: Date.now().toString(),
+          role: 'ai',
+          content: errorMessage,
+          timestamp: new Date(),
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     startChat();
   }, [activeModule.id]);
@@ -126,12 +140,18 @@ export default function App() {
         handleModuleComplete(activeModule.id);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
+      let errorMessage = "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.";
+      
+      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = "⚠️ **Limite de uso atingido.**\n\nO limite de requisições da inteligência artificial foi excedido. Por favor, aguarde um momento e tente novamente ou verifique as configurações da sua chave de API.";
+      }
+
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
+        content: errorMessage,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);

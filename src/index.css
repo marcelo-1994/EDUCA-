@@ -1,6 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-ajudai-primary: #10b981;
+  --color-ajudai-secondary: #3b82f6;
+  --color-ajudai-bg: #09090b;
+  --color-ajudai-surface: #18181b;
+  --color-ajudai-border: #27272a;
+}
+
+@layer base {
+  body {
+    @apply bg-ajudai-bg text-zinc-100 font-sans antialiased;
+  }
+}
+
 @layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-800 rounded-full hover:bg-zinc-700 transition-colors;
+  }
+  
   .prose p {
     margin-bottom: 0.75em;
   }
@@ -11,12 +45,12 @@
     margin-top: 0.5em;
     margin-bottom: 0.5em;
     padding: 0.75em;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     overflow-x: auto;
+    @apply bg-zinc-950 border border-zinc-800;
   }
   .prose code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.875em;
+    @apply font-mono text-sm px-1 py-0.5 rounded bg-zinc-800 text-emerald-400;
   }
   .prose ul {
     list-style-type: disc;
@@ -29,8 +63,6 @@
     margin-bottom: 0.75em;
   }
   .prose h1, .prose h2, .prose h3, .prose h4 {
-    font-weight: 600;
-    margin-top: 1em;
-    margin-bottom: 0.5em;
+    @apply font-bold text-zinc-100 mt-4 mb-2;
   }
 }

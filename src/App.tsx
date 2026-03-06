@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MODULES, Module, Message } from './types';
 import { initChat, sendMessage } from './services/geminiService';
+import { ajudaiService } from './services/ajudaiService';
 import { 
   Terminal, 
   Play, 
@@ -37,6 +38,7 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function App() {
+  const [modules, setModules] = useState<Module[]>(MODULES);
   const [activeModule, setActiveModule] = useState<Module>(MODULES[0]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -44,8 +46,24 @@ export default function App() {
   const [previewCode, setPreviewCode] = useState(code);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  
+  // ID de usuário simulado para o AJUDAÍ+
+  const userId = 'user-ajudai-123';
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sincronização inicial com o AJUDAÍ+
+  useEffect(() => {
+    const loadUserData = async () => {
+      setIsSyncing(true);
+      const syncedModules = await ajudaiService.fetchUserModules(userId, MODULES);
+      setModules(syncedModules);
+      setActiveModule(syncedModules[0]);
+      setIsSyncing(false);
+    };
+    loadUserData();
+  }, []);
 
   useEffect(() => {
     // Initialize chat with a welcome message
@@ -53,14 +71,17 @@ export default function App() {
       setIsLoading(true);
       await initChat();
       const initialMsg = await sendMessage(`Olá! Sou um novo aluno. Gostaria de começar o módulo: ${activeModule.title}. Pode me dar as boas-vindas e a primeira lição seguindo o método de ensino?`);
-      setMessages([
-        {
-          id: Date.now().toString(),
-          role: 'ai',
-          content: initialMsg,
-          timestamp: new Date(),
-        }
-      ]);
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'ai',
+        content: initialMsg,
+        timestamp: new Date(),
+      };
+      setMessages([aiMessage]);
+      
+      // Sincroniza a primeira mensagem com o AJUDAÍ+
+      ajudaiService.saveChatMessage(userId, activeModule.id, aiMessage);
+      
       setIsLoading(false);
     };
     startChat();
@@ -83,6 +104,9 @@ export default function App() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
+    
+    // Sincroniza a mensagem do usuário com o AJUDAÍ+
+    ajudaiService.saveChatMessage(userId, activeModule.id, userMsg);
 
     try {
       const aiResponse = await sendMessage(input, code);
@@ -93,6 +117,15 @@ export default function App() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+      
+      // Sincroniza a resposta da IA com o AJUDAÍ+
+      ajudaiService.saveChatMessage(userId, activeModule.id, aiMsg);
+      
+      // Lógica simples para simular a conclusão de um módulo se a IA disser "parabéns" ou "concluído"
+      if (aiResponse.toLowerCase().includes('parabéns') && aiResponse.toLowerCase().includes('concluído')) {
+        handleModuleComplete(activeModule.id);
+      }
+      
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMsg: Message = {
@@ -105,6 +138,20 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleModuleComplete = async (moduleId: string) => {
+    setIsSyncing(true);
+    
+    // Atualiza o estado local
+    setModules(prev => prev.map(mod => 
+      mod.id === moduleId ? { ...mod, completed: true } : mod
+    ));
+    
+    // Sincroniza com o backend do AJUDAÍ+
+    await ajudaiService.syncProgress(userId, moduleId, true);
+    
+    setIsSyncing(false);
   };
 
   const handleRunCode = () => {
@@ -140,7 +187,7 @@ export default function App() {
           <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
             Trilha de Aprendizado
           </div>
-          {MODULES.map((mod) => (
+          {modules.map((mod) => (
             <button
               key={mod.id}
               onClick={() => setActiveModule(mod)}
@@ -188,6 +235,12 @@ export default function App() {
             <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-zinc-400 font-mono">
               {activeModule.language}
             </span>
+            {isSyncing && (
+              <span className="flex items-center gap-1 text-xs text-emerald-500 ml-2 animate-pulse">
+                <Plug size={12} />
+                Sincronizando com AJUDAÍ+...
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button 

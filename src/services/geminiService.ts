@@ -1,6 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI | null = null;
+
+function getAI(): GoogleGenAI {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("A chave da API do Gemini não foi configurada. Por favor, adicione a variável GEMINI_API_KEY ou VITE_GEMINI_API_KEY nas configurações de ambiente.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+}
 
 const SYSTEM_INSTRUCTION = `Você é o EduCode AI, uma inteligência artificial educacional integrada ao ecossistema AJUDAÍ+. 
 Seu objetivo é ensinar programação (HTML, CSS, JavaScript, Python, Node.js) enquanto desenvolve projetos reais com o usuário. 
@@ -33,8 +44,9 @@ Aja como um "Duolingo da programação integrado a um ecossistema real (AJUDAÍ+
 let chatSession: any = null;
 
 export async function initChat() {
-  chatSession = ai.chats.create({
-    model: "gemini-3.1-pro-preview",
+  const genAI = getAI();
+  chatSession = genAI.chats.create({
+    model: "gemini-3-flash-preview",
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       temperature: 0.7,
